@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<robot name="ur10Gripped" xmlns:xacro="http://wiki.ros.org/xacro">
+
+<xacro:arg name="transmission_hw_interface" default="hardware_interface/PositionJointInterface"/>
+
+  <!-- common stuff -->
+  <xacro:include filename="$(find ur_description)/urdf/common.gazebo.xacro" />
+
+  <!-- arm ->
+  <xacro:ur10_robot prefix="" joint_limited="false"
+    transmission_hw_interface="$(arg transmission_hw_interface)"
+  /> -->
+
+
+<xacro:include filename="$(find ur_description)/urdf/ur10.urdf.xacro" />
+<xacro:include filename="$(find robotiq_2f_140_gripper_visualization)/urdf/robotiq_arg2f_140_model_macro.xacro" />
+
+<!-- create the robot + eef combo itself as a macro -->
+<xacro:macro name="ee_robot" params="prefix">
+
+<!-- instantiate UR5 and 2f gripper -->
+  <xacro:ur10_robot prefix="${prefix}" joint_limited="false" transmission_hw_interface="$(arg transmission_hw_interface)"/>
+  <xacro:robotiq_arg2f_140 prefix="${prefix}gripper_" />
+
+  <!-- attach gripper -->
+  <joint name="${prefix}tool0-${prefix}gripper_robotiq_arg2f_base_link" type="fixed">
+    <origin xyz="0 0 0" rpy="${0} ${0} ${pi}" />
+    <parent link="${prefix}tool0" />
+    <child link="${prefix}gripper_robotiq_arg2f_base_link" />
+  </joint>
+  <link name="world" />
+
+  <joint name="world_joint" type="fixed">
+    <parent link="world" />
+    <child link = "base_link" />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+
+ </xacro:macro>
+<xacro:ee_robot prefix=""/>
+
+</robot>
