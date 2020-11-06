@@ -5,7 +5,6 @@ from control_msgs.msg import GripperCommandActionGoal, GripperCommandGoal, Gripp
 class gripper(object):
     
     def __init__(self):
-        rospy.init_node('gripperControl')
         self.interface = rospy.Publisher('gripper/gripper_cmd/goal', GripperCommandActionGoal, queue_size=10)
         self.rate1Hz = rospy.Rate(1)
         self.gripperCommandGoal = GripperCommandActionGoal()
@@ -26,7 +25,9 @@ class gripper(object):
         self.isOpen = True
     
     def closeGripper(self):
-        self.gripperCommandGoal.goal.command.position = 0.8
+        self.gripperCommandGoal.goal.command.position = 0.4
+        self.__publish__()
+        self.gripperCommandGoal.goal.command.position = 0.45
         self.__publish__()
         self.isOpen = False
         

@@ -13,7 +13,6 @@ import PyKDL
 class ur10Arm:
 
     def __init__(self, urVersion='ur10'):
-        rospy.init_node('python_arm_controller')
         self.rate1Hz = rospy.Rate(1)
         self.interface = rospy.Publisher('arm_controller/command', JointTrajectory, queue_size=10)
         self.jointNames = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
@@ -35,8 +34,12 @@ class ur10Arm:
     def __publish__(self, jointAngles):
         self.trajecotryPointMsg.positions = jointAngles
         self.trajectoryMsg.points = [self.trajecotryPointMsg]
-        for i in range(2):
-            self.trajectoryMsg.header.stamp = rospy.Time.Now()
+        for i in range(5):
+            self.trajectoryMsg.header.stamp = rospy.Time.now()
             self.interface.publish(self.trajectoryMsg)
             self.rate1Hz.sleep()
+            
+    def setArmPosition(self, pos, preferedAngs=None):
+        angs = self.ivk.inv_kin(pos, preferedAngs)
+        self.__publish__(angs)
         

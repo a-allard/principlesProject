@@ -13,7 +13,7 @@ class urKinematics(object):
     def __init__(self, bot='ur10'):
         self.bot = bot.upper()
         self.initRobot()
-        self.lastAngles = None
+        self.lastAngles = [0,-pi/2,0,0,0,0]
         
     
     def initRobot(self):
@@ -232,7 +232,7 @@ class urKinematics(object):
 
     # Inverse Kinematics
 
-    def inv_kinself(self, p, q_d, i_unit='r', o_unit='r'):
+    def inv_kin(self, p, q_d=None, i_unit='r', o_unit='r'):
         """Solve the joint values based on an HTM.
         Args:
             p: A pose.
@@ -243,6 +243,8 @@ class urKinematics(object):
         Returns:
             A list of optimal joint value solution.
         """
+        if q_d is None:
+            q_d = self.lastAngles
 
         # Preprocessing
         if type(p) == Pose: # ROS Pose format
@@ -315,6 +317,7 @@ class urKinematics(object):
         self.lastAngles = q_sol
         # Output format
         if o_unit == 'r': # (unit: radian)
+            print(q_sol)
             return q_sol
         elif o_unit == 'd': # (unit: degree)
             return [degrees(i) for i in q_sol]

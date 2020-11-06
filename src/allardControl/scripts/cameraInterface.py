@@ -11,7 +11,6 @@ class cameraInterface(object):
     
     
     def __init__(self, liveScan=False):
-        rospy.init_node('camera_processor')
         self.interface = rospy.Subscriber('ur10/usbcam/image_raw', Image, self.__updateImage__, queue_size=3)
         self.cameraData = None
         self.liveScan = liveScan
