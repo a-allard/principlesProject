@@ -1,0 +1,6 @@
+[submodule "src/roboticsgroup_gazebo_plugins"]
+	path = src/roboticsgroup_gazebo_plugins
+	url = https://github.com/roboticsgroup/roboticsgroup_gazebo_plugins
+[submodule "src/robotiq"]
+	path = src/robotiq
+	url = https://github.com/ros-industrial/robotiq
