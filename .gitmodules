@@ -3,4 +3,7 @@
 	url = https://github.com/roboticsgroup/roboticsgroup_gazebo_plugins
 [submodule "src/robotiq"]
 	path = src/robotiq
-	url = https://github.com/ros-industrial/robotiq
+	url = https://github.com/a-allard/robotiq
+[submodule "src/universal_robot"]
+	path = src/universal_robot
+	url = https://github.com/a-allard/universal_robot
