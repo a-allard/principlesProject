@@ -7,3 +7,6 @@
 [submodule "src/universal_robot"]
 	path = src/universal_robot
 	url = https://github.com/a-allard/universal_robot
+[submodule "src/hrl-kdl"]
+	path = src/hrl-kdl
+	url = https://github.com/gt-ros-pkg/hrl-kdl.git

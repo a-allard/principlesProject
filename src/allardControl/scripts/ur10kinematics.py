@@ -14,6 +14,7 @@ class urKinematics(object):
         self.bot = bot.upper()
         self.initRobot()
         self.lastAngles = [0,-pi/2,0,0,0,0]
+        self.jointLimits = [(1, [-2*np.pi/3, 0]), (2, [-np.pi, np.pi])]
         
     
     def initRobot(self):
@@ -22,7 +23,7 @@ class urKinematics(object):
             # d (unit: mm)
             self.d1 = 0.1273
             self.d2 = self.d3 = 0
-            self.d4 = 0.163941
+            self.d4 = 0.163941 #- 0.220941 + 0.1719
             self.d5 = 0.1157
             self.d6 = 0.0922
 
@@ -98,10 +99,11 @@ class urKinematics(object):
         ros_pose.position.z = ur_pose[2]
 
         # Ros orientation
-        angle = sqrt(ur_pose[3] ** 2 + ur_pose[4] ** 2 + ur_pose[5] ** 2)
-        direction = [i / angle for i in ur_pose[3:6]]
-        np_T = tf.rotation_matrix(angle, direction)
-        np_q = tf.quaternion_from_matrix(np_T)
+        # angle = sqrt(ur_pose[3] ** 2 + ur_pose[4] ** 2 + ur_pose[5] ** 2)
+        # direction = [i / angle for i in ur_pose[3:6]]
+        # np_T = tf.rotation_matrix(angle, direction)
+        # np_q = tf.quaternion_from_matrix(np_T)
+        np_q = tf.quaternion_from_euler(ur_pose[3], ur_pose[4], ur_pose[5])
         ros_pose.orientation.x = np_q[0]
         ros_pose.orientation.y = np_q[1]
         ros_pose.orientation.z = np_q[2]
@@ -156,7 +158,7 @@ class urKinematics(object):
         return ros_pose
 
 
-    def select(self, q_sols, q_d, w=[1]*6):
+    def select(self, q_sols, q_d, w=[0.4, 1, 0.25, 0.15, 0, 0]):
         """Select the optimal solutions among a set of feasible joint value 
         solutions.
         Args:
@@ -166,7 +168,15 @@ class urKinematics(object):
         Returns:
             A list of optimal joint value solution.
         """
-
+        so = []
+        for jl in self.jointLimits:
+            for sol in q_sols:
+                if((jl[1][0] <= sol[jl[0]]) and (sol[jl[0]] <= jl[1][1])):
+                    so.append(sol)
+                    # q_sols.remove(sol)
+                    # print("removing Sol")
+        # print("{0}\t{1}".format(len(q_sols), len(so)))
+        q_sols = so
         error = []
         for q in q_sols:
             error.append(sum([w[i] * (q[i] - q_d[i]) ** 2 for i in range(6)]))
@@ -317,7 +327,7 @@ class urKinematics(object):
         self.lastAngles = q_sol
         # Output format
         if o_unit == 'r': # (unit: radian)
-            print(q_sol)
+            # print(q_sol)
             return q_sol
         elif o_unit == 'd': # (unit: degree)
             return [degrees(i) for i in q_sol]

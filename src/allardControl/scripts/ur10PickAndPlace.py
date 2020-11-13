@@ -21,7 +21,7 @@ import time
 
 
 class finalProject(object):
-    def __init__(self, random=False, numBlocks=10):
+    def __init__(self, random=False, numBlocks=3):
         rospy.init_node("mainController")
         seed(time.time())
         self.arm = ur10Arm()
@@ -29,15 +29,16 @@ class finalProject(object):
         self.blockList = []  # list of dicts {'color':'blue, 'loc':(0,0,0), 'name':'block0'} Example
         self.binList = []
         self.blockConter = 0
-        self.rlim = (0.45, 1)
+        self.rlim = (0.4, 0.9)
         self.thlim = (-np.pi/3, np.pi/3)
         self.colors = ['Blue', 'Green', 'Red']
         self.binLocs = [{'x': -0.5, 'y':-0.5}, {'x': -0.5, 'y':0}, {'x':-0.5, 'y':0.5}]
-        self.gripperTouching = 0.13
-        self.xOffset = 0.055
-        self.yOffset = 0.028
-        self.initialPose = [-0.65, 0, 0.75, 0, 3.141516, 0]
-        self.preferedAngs = [0, -np.pi/2, -np.pi/2, 0, 0, 0]
+        self.gripperTouching = 0.1# 0.14
+        self.xOffset = -0.19#0.055
+        self.yOffset = 0.0#0.028
+        self.initialPose = [0.65, 0, 0.75, np.pi/2, np.pi, 0]
+        self.preferedAngs = [[-6, -2.1415, -np.pi,-2*np.pi,-2*np.pi,-2*np.pi], [6, 0, np.pi, 2*np.pi, 2*np.pi, 2*np.pi]]
+        self.preferedDumpingAngs = [[-6, -3.1415, -np.pi,-2*np.pi,-2*np.pi,-2*np.pi], [6, 0, np.pi, 2*np.pi, 2*np.pi, 2*np.pi]]
         print('Setting arm to initial pose')
         self.setArmInitialPose()
         print('Building blocks...')
@@ -45,6 +46,7 @@ class finalProject(object):
         print('Now the bins...')
         self.initBins()
         rospy.on_shutdown(self.removeAllBlocks)
+        time.sleep(1)
     
     def initBins(self):
         for c, loc in zip(self.colors, self.binLocs):
@@ -124,16 +126,17 @@ class finalProject(object):
             lc['y'] = (lc['y'] + self.yOffset) * -1
             return lc, self.blockList[camera]['color']
         else:
-            return False
+            return self.arm.centerBlock(), 'Red'
     
     def pickUpBlock(self, location):
-        self.arm.setArmPosition([location['x'], location['y'], 0.75, 0, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi, 0, 0])
         # rospy.sleep(0.5)
-        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, 0, np.pi, 0])
+        # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.16, 0, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi, 0, 0])
         # rospy.sleep(0.5)
         self.arm.gripper.closeGripper()
         # rospy.sleep(0.5)
-        self.arm.setArmPosition([location['x'], location['y'], 0.75, 0, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi, 0, 0])
         # rospy.sleep(0.5)
     
     def moveToBin(self, color):
@@ -141,7 +144,7 @@ class finalProject(object):
         lc = loc.copy()
         lc['x'] = (lc['x'] + self.xOffset) * -1
         lc['y'] = (lc['y'] + self.yOffset) * -1
-        self.arm.setArmPosition([lc['x'], lc['y'], 0.75, 0, np.pi, 0])
+        self.arm.setArmPosition([lc['x'], lc['y'], 0.75, np.pi, 0, 0], self.preferedDumpingAngs)
         # rospy.sleep(0.5)
     
     def cleanUpBlocks(self, useCam=False):
@@ -150,7 +153,11 @@ class finalProject(object):
                 location, color = self.findBlock(i)
             else:
                 location, color = self.findBlock(-1)
-            self.pickUpBlock(location)
+                self.arm.setArmPosition([location['x'], location['y'], 0.75/2, np.pi/2, np.pi, 0])
+                location, color = self.findBlock(-1)
+                self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
+                self.arm.gripper.closeGripper()
+            # self.pickUpBlock(location)
             self.moveToBin(color)
             self.arm.gripper.openGripper()
             self.setArmInitialPose()
@@ -162,6 +169,6 @@ class finalProject(object):
 
 if __name__ == '__main__':
     fp = finalProject()
-    fp.cleanUpBlocks()
+    fp.cleanUpBlocks(True)
     while not rospy.is_shutdown():
         rospy.sleep(0.1)
