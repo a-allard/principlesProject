@@ -15,6 +15,7 @@ class cameraInterface(object):
         self.interface = rospy.Subscriber('ur10/usbcam/image_raw', Image, self.__updateImage__, queue_size=3)
         self.cameraData = None
         self.liveScan = liveScan
+        self.updateArrays = True
         self.blockLocations = []
         self.blockColors = []
         self.bridge = cv_bridge.CvBridge()
@@ -26,16 +27,17 @@ class cameraInterface(object):
             self.scanImage()
     
     def scanImage(self):
-        
-        hsv = cv2.cvtColor(self.cameraData, cv2.COLOR_BGR2HSV)
-        lower_red = np.array([ 0,  100, 100])
-        upper_red = np.array([10, 255, 255])
-        mask = cv2.inRange(hsv, lower_red, upper_red)
-        img, cnts, _= cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = []
+        colors = []
+        colorsAllowed = ['Red', 'Green', 'Blue']
+        for c in range(3):
+            _,cnt,_ = self.scanForBlocks(c)
+            cnts.extend(cnt)
+            colors.extend([colorsAllowed[c] for i in range(len(cnt))])
         image = self.cameraData.copy()
-        if(len(cnts) > 0):
+        if(len(cnts) > 0) and self.updateArrays:
             self.blockLocations = []
-            self.blockColors = []
+            self.blockColors = colors
         # print(self.cameraData.shape)
         for i, c in enumerate(cnts):
             M = cv2.moments(c)
@@ -43,8 +45,8 @@ class cameraInterface(object):
                 cx = int(M['m10']/M['m00'])
                 cy = int(M['m01']/M['m00'])
                 area = cv2.contourArea(c)
-                
-                self.blockLocations.append((cx, cy))
+                if self.updateArrays:
+                    self.blockLocations.append((cx, cy))
 
                 cv2.circle(image, (cx, cy), 5, (0,0,0), -1)
                 cv2.putText(image, "({}, {})".format(int(cx), int(cy)), (int(cx-5), int(cy+15)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
@@ -54,3 +56,13 @@ class cameraInterface(object):
         cv2.namedWindow("window", 1)
         cv2.imshow("window", image)
         cv2.waitKey(1)
+    
+    def scanForBlocks(self, color=0):
+        # 0=Red 1=Green 2=Blue
+        hsv = cv2.cvtColor(self.cameraData, cv2.COLOR_BGR2HSV)
+        lower_lim = np.array([0,  100, 100])
+        upper_lim = np.array([10, 255, 255])
+        lower_lim[0] = 0 + 115 * color
+        upper_lim[0] = 20 + 120 * color
+        mask = cv2.inRange(hsv, lower_lim, upper_lim)
+        return cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

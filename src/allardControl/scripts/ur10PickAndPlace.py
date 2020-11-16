@@ -126,19 +126,21 @@ class finalProject(object):
             lc['y'] = (lc['y'] + self.yOffset) * 1
             return lc, self.blockList[camera]['color']
         else:
-            return self.arm.centerBlock(), 'Red'
+            color, loc = self.arm.centerBlock()
+            return loc, color
     
     def pickUpBlock(self, location):
         self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.16, 0, np.pi, 0])
+        
+        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.01, np.pi/2, np.pi, 0])
         self.arm.gripper.closeGripper()
-        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.1, np.pi/2, np.pi, 0])
-        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
+        # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching-0.002, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
         # self.arm.gripper.closeGripper()
-        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.1, np.pi/2, np.pi, 0])
+        # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.1, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
         self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
@@ -149,6 +151,7 @@ class finalProject(object):
         lc['x'] = (lc['x'] + self.xOffset) * 1
         lc['y'] = (lc['y'] + self.yOffset) * 1
         self.arm.setArmPosition([lc['x'], lc['y'], 0.75, np.pi/2, np.pi, 0], self.preferedDumpingAngs)
+        self.arm.setArmPosition([lc['x'], lc['y'], 0.55, np.pi/2, np.pi, 0], self.preferedDumpingAngs)
         # rospy.sleep(0.5)
     
     def cleanUpBlocks(self, useCam=False):
@@ -159,8 +162,8 @@ class finalProject(object):
                 # location, color = self.findBlock(-1)
                 # self.arm.setArmPosition([location['x'], location['y'], 0.75/2, np.pi/2, np.pi, 0])
                 location, color = self.findBlock(-1)
-                self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
-                self.arm.gripper.closeGripper()
+                # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
+                # self.arm.gripper.closeGripper()
             self.pickUpBlock(location)
             self.moveToBin(color)
             self.arm.gripper.openGripper()
@@ -173,6 +176,6 @@ class finalProject(object):
 
 if __name__ == '__main__':
     fp = finalProject()
-    fp.cleanUpBlocks(False)
+    fp.cleanUpBlocks(True)
     while not rospy.is_shutdown():
         rospy.sleep(0.1)

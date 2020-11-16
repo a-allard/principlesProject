@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from ur10kinematics import urKinematics
-from gripperController import gripper
+from gripperController import gripper2
 import sys
 import math
 import roslib
@@ -27,7 +27,7 @@ class ur10Arm:
         
         robot = URDF.from_parameter_server()
         self.ivk = KDLKinematics(robot, 'base_link', 'wrist_3_link')
-        self.gripper = gripper()
+        self.gripper = gripper2()
         self.cam = cameraInterface()
         
         self.trajectoryMsg = JointTrajectory()
@@ -38,19 +38,22 @@ class ur10Arm:
         self.trajecotryPointMsg.accelerations = zeros
         self.trajecotryPointMsg.velocities = zeros
         self.trajecotryPointMsg.time_from_start = rospy.Duration(0.5)
+        
+        self.xyBlockFrameLoc = [436, 400]
     
     def findClosestMiddleBlock(self):
-        return np.array([(x[0]-400)**2+(x[1]-400)**2 for x in self.cam.blockLocations]).argmin()
+        return np.array([(x[0]-self.xyBlockFrameLoc[0])**2+(x[1]-self.xyBlockFrameLoc[1])**2 for x in self.cam.blockLocations]).argmin()
         
     def centerBlock(self):
         self.cam.liveScan=True
+        self.cam.updateArrays = True
         x, y = self.cam.blockLocations[self.findClosestMiddleBlock()]
         attempts = 0
-        while np.sqrt((x - 500) **2 + (y - 400)**2) > 10:
+        while np.sqrt((x - self.xyBlockFrameLoc[0]) **2 + (y - self.xyBlockFrameLoc[1])**2) > 10:
             print(self.cam.blockLocations)
             print('{0}\t{1}'.format(x, y))
-            x = (x - 500) * 0.0009
-            y = (y - 400) * 0.0009
+            x = (x - self.xyBlockFrameLoc[0]) * 0.0009
+            y = (y - self.xyBlockFrameLoc[1]) * 0.0009
             pos = self.currentPos.copy()
             pos[0] -= x
             pos[1] += y
@@ -61,7 +64,10 @@ class ur10Arm:
                 print("Cain't cener that un.")
             attempts += 1
             x, y = self.cam.blockLocations[self.findClosestMiddleBlock()]
-        return {'x': self.currentPos[0], 'y': self.currentPos[1]}
+        self.cam.updateArrays = False
+        x, y = self.cam.blockLocations[self.findClosestMiddleBlock()]
+        c = self.cam.blockColors[self.findClosestMiddleBlock()]
+        return c, {'x': self.currentPos[0], 'y': self.currentPos[1]}
         
     def ur2ros(self, ur_pose):
         """Transform pose from UR format to ROS Pose format.
@@ -111,14 +117,6 @@ class ur10Arm:
                 angs = self.ivk.inverse_search(self.ur2ros(pos), 10, *preferedAngs) # inverse kinematics
         else:
             angs = self.ivk.inverse_search(self.ur2ros(pos), 10, *preferedAngs) # inverse kinematics
-        # if self.forceLastJoint:
-        #     mul = 1
-        #     if angs[1] > 0:
-        #         mul = -1
-        #     if angs[0] > np.pi/2:
-        #         angs[-1] = mul*self.lastJointValue + (angs[0] - np.pi)
-        #     else:
-        #         angs[-1] = mul*self.lastJointValue + (angs[0] + np.pi)
-        print(angs)
+        # print(angs)
         self.__publish__(angs)
         

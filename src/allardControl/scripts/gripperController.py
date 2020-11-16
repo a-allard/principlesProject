@@ -5,6 +5,11 @@ from std_msgs.msg import Header
 from std_msgs.msg import Bool
 from std_srvs.srv import Empty
 from ur10_gripper import trigger_gripper
+from gazebo_ros_link_attacher.srv import Attach, AttachRequest, AttachResponse
+from gazebo_msgs.srv import GetWorldProperties, GetWorldPropertiesRequest, GetWorldPropertiesResponse, \
+    GetModelState, GetModelStateRequest, GetModelStateResponse, \
+        GetLinkState, GetLinkStateRequest, GetLinkStateResponse
+import time
 
 class gripper(object):
     
@@ -44,4 +49,54 @@ class gripper(object):
         self.rate1Hz.sleep()
         # self.__publish__()
         self.isOpen = False
+
+
+class gripper2(object):
+    def __init__(self):
+        self.attServ = rospy.ServiceProxy('/link_attacher_node/attach', Attach)
+        self.detServ = rospy.ServiceProxy('/link_attacher_node/detach', Attach)
+        self.worldPropsServ = rospy.ServiceProxy('/gazebo/get_world_properties', GetWorldProperties)
+        self.modelStateServ = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
+        self.linkStateServ = rospy.ServiceProxy('/gazebo/get_link_state', GetLinkState)
+        self.currentModel1 = 'robot'
+        self.currentModel2 = None
+        self.link1 = 'wrist_3_link'
+        self.link2 ='block'
+        self.gripperMsg = AttachRequest()
+        self.gripperMsg.link_name_1 = self.link1
+        self.gripperMsg.link_name_2 = self.link2
+        self.gripperMsg.model_name_1 = self.currentModel1
+        self.isGripping = False
+        self.gazeboModelsMsg = GetWorldPropertiesRequest()
+        self.gazeboModelStateMsg = GetModelStateRequest()
+        self.gazeboModelStateMsg.model_name = 'block_0'
+        self.gazeboLinkStateMsg = GetLinkStateRequest()
+        self.gazeboLinkStateMsg.link_name = 'wrist_3_link'
         
+    def openGripper(self):
+        if not self.isGripping:
+            return
+        self.detServ.call(self.gripperMsg)
+        time.sleep(0.1)
+    
+    def closeGripper(self):
+        self.currentModel2 = self.findClosestBlock()
+        self.gripperMsg.model_name_2 = self.currentModel2
+        self.attServ.call(self.gripperMsg)
+        self.isGripping = True
+        time.sleep(0.1)
+    
+    def findClosestBlock(self):
+        models = self.worldPropsServ.call(self.gazeboModelsMsg).model_names
+        positions = []
+        mods = []
+        for m in models:
+            if not 'block' in m.lower():
+                continue
+            self.gazeboModelStateMsg.model_name = m
+            positions.append(self.modelStateServ.call(self.gazeboModelStateMsg).pose.position)
+            mods.append(m)
+        link = self.linkStateServ.call(self.gazeboLinkStateMsg).link_state.pose.position
+        ers = [(link.x - s.x) ** 2 + (link.y - s.y) ** 2 + (link.z - s.z) ** 2 for s in positions]
+        
+        return mods[ers.index(min(ers))]
