@@ -33,8 +33,8 @@ class finalProject(object):
         self.thlim = (-np.pi/3, np.pi/3)
         self.colors = ['Blue', 'Green', 'Red']
         self.binLocs = [{'x': -0.5, 'y':-0.5}, {'x': -0.5, 'y':0}, {'x':-0.5, 'y':0.5}]
-        self.gripperTouching = 0.1# 0.14
-        self.xOffset = -0.19#0.055
+        self.gripperTouching = 0.054# 0.14
+        self.xOffset = 0.0#0.055
         self.yOffset = 0.0#0.028
         self.initialPose = [0.65, 0, 0.75, np.pi/2, np.pi, 0]
         self.preferedAngs = [[-6, -2.1415, -np.pi,-2*np.pi,-2*np.pi,-2*np.pi], [6, 0, np.pi, 2*np.pi, 2*np.pi, 2*np.pi]]
@@ -65,7 +65,7 @@ class finalProject(object):
         block_xml = ''
         path = rospkg.RosPack().get_path('allardControl') + '/'
         with open(path + 'urdf/block.urdf') as bf:
-            block_xml = bf.read().replace('\n', '').replace('Red', color)
+            block_xml = bf.read().replace('\n', '').replace('Red', color)#.replace('origin xyz="0.0 0.0 0.05"', 'origin xyz="{0:.5f} {1:.5f} 0.05"'.format(position['x'], position['y']))
         block_reference_frame = 'world'
         block_pose=Pose(position=Point(x=position['x'], y=position['y'], z=0))
         rospy.wait_for_service('/gazebo/spawn_urdf_model')
@@ -122,29 +122,33 @@ class finalProject(object):
     def findBlock(self, camera):
         if camera > -1:
             lc = self.blockList[camera]['loc'].copy()
-            lc['x'] = (lc['x'] + self.xOffset) * -1
-            lc['y'] = (lc['y'] + self.yOffset) * -1
+            lc['x'] = (lc['x'] + self.xOffset) * 1
+            lc['y'] = (lc['y'] + self.yOffset) * 1
             return lc, self.blockList[camera]['color']
         else:
             return self.arm.centerBlock(), 'Red'
     
     def pickUpBlock(self, location):
-        self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi, 0, 0])
+        self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.16, 0, np.pi, 0])
-        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi, 0, 0])
-        # rospy.sleep(0.5)
         self.arm.gripper.closeGripper()
+        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.1, np.pi/2, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
+        # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching-0.002, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
-        self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi, 0, 0])
+        # self.arm.gripper.closeGripper()
+        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.1, np.pi/2, np.pi, 0])
+        # rospy.sleep(0.5)
+        self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
     
     def moveToBin(self, color):
         loc = self.binLocs[self.colors.index(color)]
         lc = loc.copy()
-        lc['x'] = (lc['x'] + self.xOffset) * -1
-        lc['y'] = (lc['y'] + self.yOffset) * -1
-        self.arm.setArmPosition([lc['x'], lc['y'], 0.75, np.pi, 0, 0], self.preferedDumpingAngs)
+        lc['x'] = (lc['x'] + self.xOffset) * 1
+        lc['y'] = (lc['y'] + self.yOffset) * 1
+        self.arm.setArmPosition([lc['x'], lc['y'], 0.75, np.pi/2, np.pi, 0], self.preferedDumpingAngs)
         # rospy.sleep(0.5)
     
     def cleanUpBlocks(self, useCam=False):
@@ -152,12 +156,12 @@ class finalProject(object):
             if not useCam:
                 location, color = self.findBlock(i)
             else:
-                location, color = self.findBlock(-1)
-                self.arm.setArmPosition([location['x'], location['y'], 0.75/2, np.pi/2, np.pi, 0])
+                # location, color = self.findBlock(-1)
+                # self.arm.setArmPosition([location['x'], location['y'], 0.75/2, np.pi/2, np.pi, 0])
                 location, color = self.findBlock(-1)
                 self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
                 self.arm.gripper.closeGripper()
-            # self.pickUpBlock(location)
+            self.pickUpBlock(location)
             self.moveToBin(color)
             self.arm.gripper.openGripper()
             self.setArmInitialPose()
@@ -169,6 +173,6 @@ class finalProject(object):
 
 if __name__ == '__main__':
     fp = finalProject()
-    fp.cleanUpBlocks(True)
+    fp.cleanUpBlocks(False)
     while not rospy.is_shutdown():
         rospy.sleep(0.1)

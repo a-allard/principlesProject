@@ -10,3 +10,6 @@
 [submodule "src/hrl-kdl"]
 	path = src/hrl-kdl
 	url = https://github.com/gt-ros-pkg/hrl-kdl.git
+[submodule "src/gazebo_ros_link_attacher"]
+	path = src/gazebo_ros_link_attacher
+	url = https://github.com/mehditlili/gazebo_ros_link_attacher.git

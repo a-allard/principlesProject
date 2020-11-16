@@ -46,10 +46,10 @@ class ur10Arm:
         self.cam.liveScan=True
         x, y = self.cam.blockLocations[self.findClosestMiddleBlock()]
         attempts = 0
-        while np.sqrt((x - 400) **2 + (y - 400)**2) > 10:
+        while np.sqrt((x - 500) **2 + (y - 400)**2) > 10:
             print(self.cam.blockLocations)
             print('{0}\t{1}'.format(x, y))
-            x = (x - 400) * 0.0009
+            x = (x - 500) * 0.0009
             y = (y - 400) * 0.0009
             pos = self.currentPos.copy()
             pos[0] -= x
@@ -105,7 +105,7 @@ class ur10Arm:
     def setArmPosition(self, pos, preferedAngs=None):
         self.currentPos = np.array(pos)
         if preferedAngs is None:
-            preferedAngs = [[-4, -2.1415, -np.pi,-np.pi,-np.pi,-np.pi], [4, 0, np.pi, np.pi, np.pi, np.pi]]
+            preferedAngs = [[-4, -2.1415, -np.pi,-3.5,-np.pi,-np.pi], [4, 0, np.pi, 1.8, np.pi, np.pi]]
             angs = self.ivk.inverse(self.ur2ros(pos), self.currentPos, preferedAngs[0], preferedAngs[1], 1000) # inverse kinematics
             if angs is None:
                 angs = self.ivk.inverse_search(self.ur2ros(pos), 10, *preferedAngs) # inverse kinematics
@@ -119,6 +119,6 @@ class ur10Arm:
         #         angs[-1] = mul*self.lastJointValue + (angs[0] - np.pi)
         #     else:
         #         angs[-1] = mul*self.lastJointValue + (angs[0] + np.pi)
-        # print(angs)
+        print(angs)
         self.__publish__(angs)
         
