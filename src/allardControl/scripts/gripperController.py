@@ -77,14 +77,17 @@ class gripper2(object):
         if not self.isGripping:
             return
         self.detServ.call(self.gripperMsg)
-        time.sleep(0.1)
+        rospy.sleep(1)
+        self.isGripping = False
     
     def closeGripper(self):
+        if self.isGripping:
+            return
         self.currentModel2 = self.findClosestBlock()
         self.gripperMsg.model_name_2 = self.currentModel2
         self.attServ.call(self.gripperMsg)
         self.isGripping = True
-        time.sleep(0.1)
+        rospy.sleep(1)
     
     def findClosestBlock(self):
         models = self.worldPropsServ.call(self.gazeboModelsMsg).model_names

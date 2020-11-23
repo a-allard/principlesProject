@@ -33,12 +33,12 @@ class finalProject(object):
         self.thlim = (-np.pi/3, np.pi/3)
         self.colors = ['Blue', 'Green', 'Red']
         self.binLocs = [{'x': -0.5, 'y':-0.5}, {'x': -0.5, 'y':0}, {'x':-0.5, 'y':0.5}]
-        self.gripperTouching = 0.054# 0.14
+        self.gripperTouching = 0.07# 0.14
         self.xOffset = 0.0#0.055
         self.yOffset = 0.0#0.028
-        self.initialPose = [0.65, 0, 0.75, np.pi/2, np.pi, 0]
-        self.preferedAngs = [[-6, -2.1415, -np.pi,-2*np.pi,-2*np.pi,-2*np.pi], [6, 0, np.pi, 2*np.pi, 2*np.pi, 2*np.pi]]
-        self.preferedDumpingAngs = [[-6, -3.1415, -np.pi,-2*np.pi,-2*np.pi,-2*np.pi], [6, 0, np.pi, 2*np.pi, 2*np.pi, 2*np.pi]]
+        self.initialPose = [0.85, 0, 0.85, np.pi/2, np.pi, 0]
+        self.preferedAngs = [[-6, -2.5415, -np.pi,-2*np.pi,-2*np.pi,-2*np.pi], [6, -0.3, np.pi, 2*np.pi, 2*np.pi, 2*np.pi]]
+        self.preferedDumpingAngs = [[-6, -2.5415, -np.pi,-2*np.pi,-2*np.pi,-2*np.pi], [6, -0.3, np.pi, 2*np.pi, 2*np.pi, 2*np.pi]]
         print('Setting arm to initial pose')
         self.setArmInitialPose()
         print('Building blocks...')
@@ -100,6 +100,7 @@ class finalProject(object):
         return suc
     
     def removeAllBlocks(self):
+        print('Deleteing everying dear to you...')
         try:
             delete_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
             for block in self.blockList:
@@ -117,6 +118,7 @@ class finalProject(object):
         self.arm.gripper.openGripper()
     
     def __del__(self):
+        self.arm.gripper.openGripper()
         self.removeAllBlocks()
     
     def findBlock(self, camera):
@@ -127,14 +129,17 @@ class finalProject(object):
             return lc, self.blockList[camera]['color']
         else:
             color, loc = self.arm.centerBlock()
+            print(loc)
+            print(color)
             return loc, color
     
     def pickUpBlock(self, location):
-        self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi/2, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], 0.85, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.16, 0, np.pi, 0])
         
-        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.01, np.pi/2, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
+        print('*Chomp!!*')
         self.arm.gripper.closeGripper()
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching-0.002, np.pi/2, np.pi, 0])
@@ -142,17 +147,21 @@ class finalProject(object):
         # self.arm.gripper.closeGripper()
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.1, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
-        self.arm.setArmPosition([location['x'], location['y'], 0.75, np.pi/2, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], 0.85, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
     
     def moveToBin(self, color):
+        print('Bin it baby!\nBlock color: {0}'.format(color))
         loc = self.binLocs[self.colors.index(color)]
         lc = loc.copy()
         lc['x'] = (lc['x'] + self.xOffset) * 1
         lc['y'] = (lc['y'] + self.yOffset) * 1
-        self.arm.setArmPosition([lc['x'], lc['y'], 0.75, np.pi/2, np.pi, 0], self.preferedDumpingAngs)
+        print('Headed for the bin...')
+        self.arm.setArmPosition([lc['x'], lc['y'], 0.85, np.pi/2, np.pi, 0], self.preferedDumpingAngs)
+        print('Squatting...')
         self.arm.setArmPosition([lc['x'], lc['y'], 0.55, np.pi/2, np.pi, 0], self.preferedDumpingAngs)
-        # rospy.sleep(0.5)
+        print('*Bonk!!*')
+        self.arm.gripper.openGripper()
     
     def cleanUpBlocks(self, useCam=False):
         for i in range(self.numBlocks):
@@ -166,7 +175,6 @@ class finalProject(object):
                 # self.arm.gripper.closeGripper()
             self.pickUpBlock(location)
             self.moveToBin(color)
-            self.arm.gripper.openGripper()
             self.setArmInitialPose()
 
 

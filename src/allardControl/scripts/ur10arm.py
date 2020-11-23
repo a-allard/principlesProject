@@ -22,8 +22,6 @@ class ur10Arm:
         self.rate1Hz = rospy.Rate(1)
         self.interface = rospy.Publisher('arm_controller/command', JointTrajectory, queue_size=10)
         self.jointNames = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
-        self.forceLastJoint = True
-        self.lastJointValue = np.pi/2
         
         robot = URDF.from_parameter_server()
         self.ivk = KDLKinematics(robot, 'base_link', 'wrist_3_link')
@@ -39,7 +37,10 @@ class ur10Arm:
         self.trajecotryPointMsg.velocities = zeros
         self.trajecotryPointMsg.time_from_start = rospy.Duration(0.5)
         
+        self.jointBiases = [0.4, 1, 0.25, 0.15, 0, 0]
+        
         self.xyBlockFrameLoc = [436, 400]
+        self.lastJointAngles = None
     
     def findClosestMiddleBlock(self):
         return np.array([(x[0]-self.xyBlockFrameLoc[0])**2+(x[1]-self.xyBlockFrameLoc[1])**2 for x in self.cam.blockLocations]).argmin()
@@ -47,10 +48,12 @@ class ur10Arm:
     def centerBlock(self):
         self.cam.liveScan=True
         self.cam.updateArrays = True
+        rospy.sleep(1)
         x, y = self.cam.blockLocations[self.findClosestMiddleBlock()]
         attempts = 0
         while np.sqrt((x - self.xyBlockFrameLoc[0]) **2 + (y - self.xyBlockFrameLoc[1])**2) > 10:
             print(self.cam.blockLocations)
+            print(self.cam.blockColors)
             print('{0}\t{1}'.format(x, y))
             x = (x - self.xyBlockFrameLoc[0]) * 0.0009
             y = (y - self.xyBlockFrameLoc[1]) * 0.0009
@@ -111,12 +114,12 @@ class ur10Arm:
     def setArmPosition(self, pos, preferedAngs=None):
         self.currentPos = np.array(pos)
         if preferedAngs is None:
-            preferedAngs = [[-4, -2.1415, -np.pi,-3.5,-np.pi,-np.pi], [4, 0, np.pi, 1.8, np.pi, np.pi]]
-            angs = self.ivk.inverse(self.ur2ros(pos), self.currentPos, preferedAngs[0], preferedAngs[1], 1000) # inverse kinematics
+            preferedAngs = [[-4, -2.1415, -np.pi,-3.5,-np.pi,-np.pi], [4, -0.1, np.pi, 2, np.pi, np.pi]]
+            angs = self.ivk.inverse(self.ur2ros(pos), self.lastJointAngles, preferedAngs[0], preferedAngs[1], maxiter=10000) # inverse kinematics
             if angs is None:
                 angs = self.ivk.inverse_search(self.ur2ros(pos), 10, *preferedAngs) # inverse kinematics
         else:
             angs = self.ivk.inverse_search(self.ur2ros(pos), 10, *preferedAngs) # inverse kinematics
-        # print(angs)
+        self.lastJointAngles = angs
         self.__publish__(angs)
         

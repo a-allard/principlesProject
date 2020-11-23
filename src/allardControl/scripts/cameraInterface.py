@@ -60,9 +60,12 @@ class cameraInterface(object):
     def scanForBlocks(self, color=0):
         # 0=Red 1=Green 2=Blue
         hsv = cv2.cvtColor(self.cameraData, cv2.COLOR_BGR2HSV)
-        lower_lim = np.array([0,  100, 100])
+        lower_lim = np.array([0,  220, 220])
         upper_lim = np.array([10, 255, 255])
-        lower_lim[0] = 0 + 115 * color
-        upper_lim[0] = 20 + 120 * color
+        lower_lim[0] = 0 + 60 * color
+        upper_lim[0] = 20 + 60 * color
         mask = cv2.inRange(hsv, lower_lim, upper_lim)
+        # cv2.namedWindow("window2", 2)
+        # cv2.imshow("window2", hsv)
+        # cv2.waitKey(1)
         return cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
