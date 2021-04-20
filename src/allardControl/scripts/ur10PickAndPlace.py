@@ -36,7 +36,7 @@ class finalProject(object):
         self.gripperTouching = 0.07# 0.14
         self.xOffset = 0.0#0.055
         self.yOffset = 0.0#0.028
-        self.initialPose = [0.85, 0, 0.85, np.pi/2, np.pi, 0]
+        self.initialPose = [-0.85, 0, 0.85, 0,np.pi,np.pi ] #-np.pi/2, np.pi
         self.preferedAngs = [[-6, -2.5415, -np.pi,-2*np.pi,-2*np.pi,-2*np.pi], [6, -0.3, np.pi, 2*np.pi, 2*np.pi, 2*np.pi]]
         self.preferedDumpingAngs = [[-6, -2.5415, -np.pi,-2*np.pi,-2*np.pi,-2*np.pi], [6, -0.3, np.pi, 2*np.pi, 2*np.pi, 2*np.pi]]
         print('Setting arm to initial pose')
@@ -134,11 +134,11 @@ class finalProject(object):
             return loc, color
     
     def pickUpBlock(self, location):
-        self.arm.setArmPosition([location['x'], location['y'], 0.85, np.pi/2, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], 0.85, 0,np.pi,np.pi])
         # rospy.sleep(0.5)
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.16, 0, np.pi, 0])
         
-        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, 0,np.pi,np.pi])
         print('*Chomp!!*')
         self.arm.gripper.closeGripper()
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching, np.pi/2, np.pi, 0])
@@ -147,19 +147,19 @@ class finalProject(object):
         # self.arm.gripper.closeGripper()
         # self.arm.setArmPosition([location['x'], location['y'], self.gripperTouching+0.1, np.pi/2, np.pi, 0])
         # rospy.sleep(0.5)
-        self.arm.setArmPosition([location['x'], location['y'], 0.85, np.pi/2, np.pi, 0])
+        self.arm.setArmPosition([location['x'], location['y'], 0.85, 0,np.pi,np.pi])
         # rospy.sleep(0.5)
     
     def moveToBin(self, color):
         print('Bin it baby!\nBlock color: {0}'.format(color))
         loc = self.binLocs[self.colors.index(color)]
         lc = loc.copy()
-        lc['x'] = (lc['x'] + self.xOffset) * 1
-        lc['y'] = (lc['y'] + self.yOffset) * 1
+        lc['x'] = (lc['x'] + self.xOffset) * -1
+        lc['y'] = (lc['y'] + self.yOffset) * -1
         print('Headed for the bin...')
-        self.arm.setArmPosition([lc['x'], lc['y'], 0.85, np.pi/2, np.pi, 0], self.preferedDumpingAngs)
+        self.arm.setArmPosition([lc['x'], lc['y'], 0.85, 0,np.pi,np.pi], self.preferedDumpingAngs)
         print('Squatting...')
-        self.arm.setArmPosition([lc['x'], lc['y'], 0.55, np.pi/2, np.pi, 0], self.preferedDumpingAngs)
+        self.arm.setArmPosition([lc['x'], lc['y'], 0.55, 0,np.pi,np.pi], self.preferedDumpingAngs)
         print('*Bonk!!*')
         self.arm.gripper.openGripper()
     

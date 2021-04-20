@@ -62,10 +62,10 @@ class gripper2(object):
         self.currentModel2 = None
         self.link1 = 'wrist_3_link'
         self.link2 ='block'
-        self.gripperMsg = AttachRequest()
-        self.gripperMsg.link_name_1 = self.link1
-        self.gripperMsg.link_name_2 = self.link2
-        self.gripperMsg.model_name_1 = self.currentModel1
+        # self.gripperMsg = AttachRequest()
+        # self.gripperMsg.link_name_1 = self.link1
+        # self.gripperMsg.link_name_2 = self.link2
+        # self.gripperMsg.model_name_1 = self.currentModel1
         self.isGripping = False
         self.gazeboModelsMsg = GetWorldPropertiesRequest()
         self.gazeboModelStateMsg = GetModelStateRequest()
@@ -76,6 +76,12 @@ class gripper2(object):
     def openGripper(self):
         if not self.isGripping:
             return
+        self.currentModel2 = self.findClosestBlock()
+        self.gripperMsg = AttachRequest()
+        self.gripperMsg.link_name_1 = self.link1
+        self.gripperMsg.link_name_2 = self.link2
+        self.gripperMsg.model_name_1 = self.currentModel1
+        self.gripperMsg.model_name_2 = self.currentModel2
         self.detServ.call(self.gripperMsg)
         rospy.sleep(1)
         self.isGripping = False
@@ -84,6 +90,10 @@ class gripper2(object):
         if self.isGripping:
             return
         self.currentModel2 = self.findClosestBlock()
+        self.gripperMsg = AttachRequest()
+        self.gripperMsg.link_name_1 = self.link1
+        self.gripperMsg.link_name_2 = self.link2
+        self.gripperMsg.model_name_1 = self.currentModel1
         self.gripperMsg.model_name_2 = self.currentModel2
         self.attServ.call(self.gripperMsg)
         self.isGripping = True

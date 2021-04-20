@@ -15,10 +15,12 @@ from geometry_msgs.msg import Pose, Quaternion
 
 from pykdl_utils.kdl_kinematics import KDLKinematics
 import tf.transformations as tf
+import tf_conversions.posemath as pm
+from optimizer import trajectoryOptim
 
 class ur10Arm:
 
-    def __init__(self, urVersion='ur10'):
+    def __init__(self, urVersion='ur10', useOptimizer=True):
         self.rate1Hz = rospy.Rate(1)
         self.interface = rospy.Publisher('arm_controller/command', JointTrajectory, queue_size=10)
         self.jointNames = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
@@ -41,6 +43,7 @@ class ur10Arm:
         
         self.xyBlockFrameLoc = [436, 400]
         self.lastJointAngles = None
+        self.useOptim=useOptimizer
     
     def findClosestMiddleBlock(self):
         return np.array([(x[0]-self.xyBlockFrameLoc[0])**2+(x[1]-self.xyBlockFrameLoc[1])**2 for x in self.cam.blockLocations]).argmin()
@@ -58,8 +61,8 @@ class ur10Arm:
             x = (x - self.xyBlockFrameLoc[0]) * 0.0009
             y = (y - self.xyBlockFrameLoc[1]) * 0.0009
             pos = self.currentPos.copy()
-            pos[0] -= x
-            pos[1] += y
+            pos[0] += x
+            pos[1] -= y
             # print(pos)
             # print(self.currentPos)
             self.setArmPosition(pos)
@@ -94,7 +97,7 @@ class ur10Arm:
         # direction = [i / angle for i in ur_pose[3:6]]
         # np_T = tf.rotation_matrix(angle, direction)
         # np_q = tf.quaternion_from_matrix(np_T)
-        np_q = tf.quaternion_from_euler(ur_pose[3], ur_pose[4], ur_pose[5])
+        np_q = tf.quaternion_from_euler(ur_pose[3], ur_pose[4], ur_pose[5], 'rxyz')
         ros_pose.orientation.x = np_q[0]
         ros_pose.orientation.y = np_q[1]
         ros_pose.orientation.z = np_q[2]
@@ -110,16 +113,28 @@ class ur10Arm:
             self.trajectoryMsg.header.stamp = rospy.Time.now()
             self.interface.publish(self.trajectoryMsg)
             self.rate1Hz.sleep()
-            
-    def setArmPosition(self, pos, preferedAngs=None):
-        self.currentPos = np.array(pos)
+    def __oldIVK__(self, pos, preferedAngs=None):
         if preferedAngs is None:
             preferedAngs = [[-4, -2.1415, -np.pi,-3.5,-np.pi,-np.pi], [4, -0.1, np.pi, 2, np.pi, np.pi]]
             angs = self.ivk.inverse(self.ur2ros(pos), self.lastJointAngles, preferedAngs[0], preferedAngs[1], maxiter=10000) # inverse kinematics
             if angs is None:
                 angs = self.ivk.inverse_search(self.ur2ros(pos), 10, *preferedAngs) # inverse kinematics
         else:
-            angs = self.ivk.inverse_search(self.ur2ros(pos), 10, *preferedAngs) # inverse kinematics
+            angs = self.ivk.inverse_search(self.ur2ros(pos), 10, *preferedAngs) # inverse kinematics    
+        return angs
+    def setArmPosition(self, pos, preferedAngs=None):
+        self.currentPos = np.array(pos)
+        if not self.useOptim:
+            angs = self.__oldIVK__(pos, preferedAngs)
+        else:
+            print(pm.toMatrix(pm.fromMsg(self.ur2ros(pos))))
+            trj = trajectoryOptim(self.lastJointAngles, pm.toMatrix(pm.fromMsg(self.ur2ros(pos))))
+            trj._numSteps = 1
+            angs = trj.optimize()
+            loc = angs[-1]
+            angs = angs[0][0]
         self.lastJointAngles = angs
         self.__publish__(angs)
+        self.currentPos[0:3] = loc[0][0:-1,3]
+        return loc[0][0:-1,3]
         
